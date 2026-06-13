@@ -25,7 +25,7 @@
         <h3>Керування:</h3>
         <button onclick="togglePart(0)">Арка 1</button>
         <button onclick="togglePart(1)">Арка 2</button>
-        <p><small>Відкрий F12, якщо не працює!</small></p>
+        <p><small>Відкрий F12 для діагностики</small></p>
     </div>
 
     <model-viewer id="model" src="test_2.glb" camera-controls shadow-intensity="1"></model-viewer>
@@ -34,25 +34,30 @@
         const modelViewer = document.getElementById('model');
 
         function togglePart(index) {
-            const model = modelViewer.model;
-            if (!model) return;
+            // Перевіряємо, чи завантажилася модель
+            if (!modelViewer.model) {
+                console.error("Модель ще не завантажена!");
+                return;
+            }
 
-            // Збираємо всі 3D-об'єкти (meshes) у список
             let meshes = [];
+            
+            // Безпечний обхід сцени
             modelViewer.model.scenes.forEach(scene => {
                 scene.traverse(node => {
-                    if (node.isMesh) meshes.push(node);
+                    if (node.isMesh) {
+                        meshes.push(node);
+                    }
                 });
             });
 
-            console.log("Знайдено мешів у моделі:", meshes.length);
+            console.log("Всього знайдено мешів:", meshes.length);
 
-            // Перемикаємо видимість за індексом
+            // Перемикаємо видимість
             if (meshes[index]) {
                 meshes[index].visible = !meshes[index].visible;
-                console.log("Перемикаю об'єкт:", meshes[index].name || "без імені");
             } else {
-                console.error("Об'єкт з індексом " + index + " не знайдено. Всього об'єктів: " + meshes.length);
+                console.warn("Об'єкт з індексом " + index + " відсутній.");
             }
         }
     </script>
