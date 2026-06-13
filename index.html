@@ -42,17 +42,20 @@
 
     <model-viewer id="model" src="test_2.glb" camera-controls shadow-intensity="1"></model-viewer>
 
-    <script>
-        const modelViewer = document.getElementById('model');
+   <script>
+    const modelViewer = document.getElementById('model');
 
-        function togglePart(partName) {
-            const part = modelViewer.model.getObjectByName(partName);
-            if (part) {
-                part.visible = !part.visible;
-            } else {
-                console.error("Об'єкт не знайдено: " + partName);
-            }
+    function togglePart(partName) {
+        // У model-viewer об'єкти доступні через метод querySelector на самій моделі
+        const part = modelViewer.querySelector(`[name="${partName}"]`);
+        
+        if (part) {
+            // Змінюємо видимість
+            part.visible = !part.visible;
+        } else {
+            console.error("Об'єкт з ім'ям " + partName + " не знайдено!");
         }
-    </script>
+    }
+</script>
 </body>
 </html>
