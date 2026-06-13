@@ -5,30 +5,16 @@
     <title>Конструктор пам'ятників</title>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
     <style>
-        /* Стиль для кнопок, щоб вони були поверх моделі */
         .controls { 
-            position: absolute; 
-            top: 20px; 
-            left: 20px; 
-            z-index: 100; 
-            background: rgba(255, 255, 255, 0.8);
-            padding: 15px;
-            border-radius: 8px;
+            position: absolute; top: 20px; left: 20px; z-index: 100; 
+            background: rgba(255, 255, 255, 0.8); padding: 15px; border-radius: 8px;
         }
         button { 
-            padding: 10px 15px; 
-            margin: 5px; 
-            cursor: pointer; 
-            background-color: #333; 
-            color: white; 
-            border: none; 
-            border-radius: 4px;
+            padding: 10px 15px; margin: 5px; cursor: pointer; 
+            background-color: #333; color: white; border: none; border-radius: 4px;
         }
-        /* Встановлюємо сірий фон для моделі, щоб вона не зливалася */
         model-viewer {
-            width: 100%;
-            height: 90vh;
-            background-color: #e0e0e0;
+            width: 100%; height: 90vh; background-color: #e0e0e0;
         }
     </style>
 </head>
@@ -36,42 +22,37 @@
 
     <div class="controls">
         <h3>Керування:</h3>
-        <button onclick="togglePart('arka_1')">Вкл/Викл Арка 1</button>
-        <button onclick="togglePart('arka_2')">Вкл/Викл Арка 2</button>
+        <button onclick="togglePart('arka_1')">Арка 1</button>
+        <button onclick="togglePart('arka_2')">Арка 2</button>
+        <p><small>Дивись консоль (F12) для назв!</small></p>
     </div>
 
     <model-viewer id="model" src="test_2.glb" camera-controls shadow-intensity="1"></model-viewer>
 
-   <script>
-    const modelViewer = document.getElementById('model');
+    <script>
+        const modelViewer = document.getElementById('model');
 
-       modelViewer.addEventListener('load', () => {
-    // Цей код виведе список усіх об'єктів моделі в консоль F12
-    const allParts = modelViewer.querySelectorAll('*');
-    allParts.forEach(part => {
-        if (part.name) {
-            console.log("Знайдено об'єкт з іменем:", part.name);
+        modelViewer.addEventListener('load', () => {
+            // Цей блок виведе всі матеріали в консоль
+            const model = modelViewer.model;
+            console.log("Всі знайдені матеріали:", model.materialNames);
+            
+            // Якщо імена об'єктів порожні, ми побачимо список матеріалів
+            model.materialNames.forEach(name => {
+                console.log("Матеріал знайдено:", name);
+            });
+        });
+
+        function togglePart(partName) {
+            // Спочатку шукаємо як об'єкт
+            const part = modelViewer.querySelector(`[name="${partName}"]`);
+            
+            if (part) {
+                part.visible = !part.visible;
+            } else {
+                console.error("Об'єкт '" + partName + "' не знайдено. Перевір назву в консолі!");
+            }
         }
-    });
-});
-
-       modelViewer.addEventListener('load', () => {
-    // Цей код виведе список усіх об'єктів моделі в консоль F12
-    const allParts = modelViewer.querySelectorAll('[name]');
-    allParts.forEach(part => console.log("Знайдено об'єкт з іменем:", part.name));
-});
-
-    function togglePart(partName) {
-        // У model-viewer об'єкти доступні через метод querySelector на самій моделі
-        const part = modelViewer.querySelector(`[name="${partName}"]`);
-        
-        if (part) {
-            // Змінюємо видимість
-            part.visible = !part.visible;
-        } else {
-            console.error("Об'єкт з ім'ям " + partName + " не знайдено!");
-        }
-    }
-</script>
+    </script>
 </body>
 </html>
