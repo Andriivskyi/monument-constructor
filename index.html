@@ -45,6 +45,12 @@
    <script>
     const modelViewer = document.getElementById('model');
 
+       modelViewer.addEventListener('load', () => {
+    // Цей код виведе список усіх об'єктів моделі в консоль F12
+    const allParts = modelViewer.querySelectorAll('[name]');
+    allParts.forEach(part => console.log("Знайдено об'єкт з іменем:", part.name));
+});
+
     function togglePart(partName) {
         // У model-viewer об'єкти доступні через метод querySelector на самій моделі
         const part = modelViewer.querySelector(`[name="${partName}"]`);
