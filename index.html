@@ -47,6 +47,16 @@
 
        modelViewer.addEventListener('load', () => {
     // Цей код виведе список усіх об'єктів моделі в консоль F12
+    const allParts = modelViewer.querySelectorAll('*');
+    allParts.forEach(part => {
+        if (part.name) {
+            console.log("Знайдено об'єкт з іменем:", part.name);
+        }
+    });
+});
+
+       modelViewer.addEventListener('load', () => {
+    // Цей код виведе список усіх об'єктів моделі в консоль F12
     const allParts = modelViewer.querySelectorAll('[name]');
     allParts.forEach(part => console.log("Знайдено об'єкт з іменем:", part.name));
 });
