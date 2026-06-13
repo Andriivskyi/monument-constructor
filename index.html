@@ -43,16 +43,25 @@
             });
         });
 
-        function togglePart(partName) {
-            // Спочатку шукаємо як об'єкт
-            const part = modelViewer.querySelector(`[name="${partName}"]`);
-            
-            if (part) {
-                part.visible = !part.visible;
-            } else {
-                console.error("Об'єкт '" + partName + "' не знайдено. Перевір назву в консолі!");
-            }
-        }
+      function togglePart(partName) {
+    // Шукаємо об'єкт через model-viewer API
+    const model = modelViewer.model;
+    
+    // Спробуємо знайти об'єкт, який містить partName в імені (на випадок прихованих префіксів)
+    const part = modelViewer.model.getObjectByName(partName); 
+    
+    if (part) {
+        part.visible = !part.visible;
+    } else {
+        console.error("Не вдалося знайти '" + partName + "'. Ось імена всіх вузлів, які я бачу:");
+        // Виводимо в консоль все підряд, що є в моделі
+        modelViewer.model.scenes.forEach(scene => {
+            scene.traverse(node => {
+                if (node.name) console.log("Знайдений вузол:", node.name);
+            });
+        });
+    }
+}
     </script>
 </body>
 </html>
