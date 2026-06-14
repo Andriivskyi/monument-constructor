@@ -36,36 +36,35 @@
 
     <div class="control-panel">
         
-        <div class="section-title">1. Виберіть Основу (Плиту):</div>
-        <div class="btn-group">
-            <button id="btn-osnova" class="active" onclick="changeOsnova('osnova')">Основа 1</button>
-            <button id="btn-osnova_1" onclick="changeOsnova('osnova_1')">Основа 2</button>
-            <button id="btn-osnova_2" onclick="changeOsnova('osnova_2')">Основа 3</button>
-        </div>
+      <div class="section-title">1. Виберіть Основу (Плиту):</div>
+<div class="btn-group">
+    <button id="btn-osnova" class="active" onclick="changeOsnova('osnova')">Основа 1</button>
+    <button id="btn-osnova_1" onclick="changeOsnova('osnova_1')">Основа 2</button>
+    <button id="btn-osnova_2" onclick="changeOsnova('osnova_2')">Основа 3</button>
+</div>
 
-        <div class="section-title">2. Виберіть Арку (Стелу):</div>
-        <div class="btn-group">
-            <button id="btn-arka" onclick="changeArka('arka')">Арка: Пряма</button>
-            <button id="btn-arka.001" onclick="changeArka('arka.001')">Арка: Хвилька</button>
-            <button id="btn-arka.002" onclick="changeArka('arka.002')">Арка: Купол</button>
-        </div>
+<div class="section-title">2. Виберіть Арку (Стелу):</div>
+<div class="btn-group">
+    <button id="btn-arka" onclick="changeArka('arka')">Арка: Пряма</button>
+    <button id="btn-arka.001" onclick="changeArka('arka.001')">Арка: Хвилька</button>
+    <button id="btn-arka.002" onclick="changeArka('arka.002')">Арка: Купол</button>
+</div>
 
     </div>
 </div>
 
 <script>
-    // Поточний стан конструктора (за замовчуванням вибрано першу основу)
+    // Поточний стан конструктора
     let currentOsnovaName = 'osnova';
     let currentArkaName = '';
 
-    // Безпечно дістаємо плеєр
     const viewer = document.getElementById('main-model');
 
     // ГОЛОВНА ФУНКЦІЯ ОНОВЛЕННЯ СЦЕНИ
     function updateConstructor() {
         if (!viewer) return;
         
-        // Знаходимо приховане 3D-середовище всередині віджета
+        // Дістаємо приховану тривимірну сцену Three.js
         const symbol = Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene');
         const scene = viewer[symbol];
         if (!scene) return;
@@ -75,16 +74,11 @@
         let activeSocketOsnova = null;
         let activeArka = null;
 
-        // Допоміжна функція для визначення суфікса об'єкта (для osnova_1 це "1", для osnova це "")
-        const getSuffix = (name) => {
-            if (!name.includes('_')) return '';
-            return name.split('_').pop();
-        };
-
+        // Повний прохід по моделі
         scene.traverse((node) => {
             if (node.isMesh) {
                 
-                // 1. Шукаємо центральний сокет
+                // 1. Шукаємо центр сцени
                 if (node.name === 'socket_center') {
                     socketCenter = node;
                     node.visible = false; 
@@ -102,21 +96,27 @@
                     }
                 }
                 
-                // 3. Збіг сокетів арок за суфіксами
+                // 3. Шукаємо сокет саме для ПОТОЧНОЇ основи
                 if (node.name.startsWith('socket_osnova')) {
                     node.visible = false;
                     
-                    const osnovaSuffix = getSuffix(currentOsnovaName);
-                    const socketSuffix = getSuffix(node.name);
+                    // Витягуємо чистий індекс з назви основи (наприклад: "osnova_1" -> "1", "osnova" -> "")
+                    const osnovaIndex = currentOsnovaName.replace('osnova', '').replace('_', '');
+                    // Витягуємо індекс з назви сокета (наприклад: "socket_osnova_1" -> "1")
+                    const socketIndex = node.name.replace('socket_osnova', '').replace('_', '');
                     
-                    if (osnovaSuffix === socketSuffix) {
+                    if (osnovaIndex === socketIndex) {
                         activeSocketOsnova = node;
                     }
                 }
 
-                // 4. Логіка відображення арок
+                // 4. Логіка відображення арок (Пряма, Хвилька, Купол)
+                // Код підтримує обидва варіанти назв: і з крапками, і з підкресленнями
                 if (node.name.startsWith('arka')) {
-                    if (node.name === currentArkaName && currentArkaName !== '') {
+                    let cleanNodeName = node.name.replace('.', '_'); // на випадок якщо arka_001
+                    let cleanTargetName = currentArkaName.replace('.', '_');
+
+                    if ((node.name === currentArkaName || cleanNodeName === cleanTargetName) && currentArkaName !== '') {
                         node.visible = true;
                         activeArka = node;
                     } else {
@@ -126,35 +126,37 @@
             }
         });
 
-        // ЕТАП 1: Магнітимо основу до центру
+        // ЕТАП 1: Магнітимо основу до центру сцени
         if (socketCenter && activeOsnova) {
             activeOsnova.position.x = socketCenter.position.x;
             activeOsnova.position.y = socketCenter.position.y;
             activeOsnova.position.z = socketCenter.position.z;
         }
 
-        // ЕТАП 2: Магнітимо арку до сокета активної основи
+        // ЕТАП 2: Магнітимо арку до сокета цієї основи
         if (activeSocketOsnova && activeArka) {
             activeArka.position.x = activeSocketOsnova.position.x;
             activeArka.position.y = activeSocketOsnova.position.y;
             activeArka.position.z = activeSocketOsnova.position.z;
         }
 
-        // Примусове та миттєве перемалювання 3D вікна
-        viewer.requestUpdate();
+        // ПРИМУСОВЕ ПЕРЕМАЛЬОВУВАННЯ 3D КАДРУ (Ось воно!)
+        if (typeof viewer.queueRender === 'function') {
+            viewer.queueRender();
+        }
     }
 
     // КЛІК НА КНОПКУ ОСНОВИ
     function changeOsnova(name) {
         currentOsnovaName = name;
-        currentArkaName = ''; // Примусово ховаємо арку ("все інше зникає")
+        currentArkaName = ''; // Коли міняємо основу — ховаємо арку
         
-        // Оновлюємо класи активності кнопок основ
+        // Міняємо активну кнопку для основ
         document.querySelectorAll('[id^="btn-osnova"]').forEach(b => b.classList.remove('active'));
-        const activeBtn = document.getElementById('btn-' + name);
+        const activeBtn = document.getElementById('btn-' + name.replace('.', '\\.'));
         if (activeBtn) activeBtn.classList.add('active');
         
-        // Скидаємо виділення з арок
+        // Гасимо кнопки арок
         document.querySelectorAll('[id^="btn-arka"]').forEach(b => b.classList.remove('active'));
 
         updateConstructor();
@@ -164,23 +166,24 @@
     function changeArka(name) {
         currentArkaName = name;
         
-        // Оновлюємо класи активності кнопок арок
+        // Міняємо активну кнопку для арок
         document.querySelectorAll('[id^="btn-arka"]').forEach(b => b.classList.remove('active'));
-        const activeBtn = document.getElementById('btn-' + name);
+        // Екрануємо крапку в ID для CSS пошуку
+        const activeBtn = document.getElementById('btn-' + name.replace('.', '\\.'));
         if (activeBtn) activeBtn.classList.add('active');
 
         updateConstructor();
     }
 
-    // БЕЗПЕЧНИЙ ЗАПУСК СИС ТЕМИ
+    // Запуск при завантаженні 3D-моделі
     if (viewer) {
         viewer.addEventListener('load', () => {
             updateConstructor();
-            // Мікро-затримка для синхронізації з движком Three.js всередині плеєра
-            setTimeout(updateConstructor, 150);
+            // Подвійний прорахунок через 100мс, щоб модель точно сіла на координати
+            setTimeout(updateConstructor, 100);
         });
     }
 </script>
-
+    
 </body>
 </html>
