@@ -17,15 +17,13 @@
 
     <div class="container">
         <h1>Конструктор 3D Art Co</h1>
-       <model-viewer 
-    id="main-model" 
-    src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb?v=1" 
-    camera-controls 
-    shadow-intensity="1"
-    camera-orbit="160deg 77deg 0.1m" 
-    camera-target="-0.30m 0.30m 0.44m"
-    reset-camera-on-reorient>
-</model-viewer>
+        <model-viewer 
+            id="main-model" 
+            src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" 
+            camera-controls 
+            shadow-intensity="1"
+            interaction-prompt="none">
+        </model-viewer>
 
         <div class="panel">
             <div>Вибір основи:</div>
@@ -44,6 +42,31 @@
     let currentOsnova = 'osnova';
     let currentArka = 'arka';
     const viewer = document.getElementById('main-model');
+
+    // ПРИМУСОВЕ НАЛАШТУВАННЯ КАМЕРИ
+    viewer.addEventListener('load', () => {
+        setTimeout(() => {
+            // Змінюй число 6.0m, щоб наблизити або віддалити
+            viewer.cameraOrbit = "160deg 77deg 6.0m"; 
+            viewer.cameraTarget = "-0.30m 0.30m 0.44m";
+            viewer.jumpCameraToGoal();
+        }, 500);
+        
+        // Кольори
+        const scene = viewer[Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene')];
+        scene.traverse(node => {
+            if (node.isMesh) {
+                node.material = node.material.clone();
+                if (node.name === 'osnova') node.material.color.set('#555555'); 
+                if (node.name === 'osnova_1') node.material.color.set('#777777'); 
+                if (node.name === 'osnova_2') node.material.color.set('#333333'); 
+                if (node.name === 'arka') node.material.color.set('#1a1a1a'); 
+                if (node.name === 'arka_1') node.material.color.set('#444444'); 
+                if (node.name === 'arka_2') node.material.color.set('#8b8b8b'); 
+            }
+        });
+        update();
+    });
 
     function snapToTarget(object, target) {
         if (!object || !target) return;
@@ -88,26 +111,7 @@
             activeArka.scale.set(1, 1, 1);
             snapToTarget(activeArka, activeSocket);
         }
-
-        const currentShadow = viewer.shadowIntensity || 1;
-        viewer.shadowIntensity = currentShadow === 1 ? 0.99 : 1;
     }
-
-    viewer.addEventListener('load', () => {
-        const scene = viewer[Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene')];
-        scene.traverse(node => {
-            if (node.isMesh) {
-                node.material = node.material.clone();
-                if (node.name === 'osnova') node.material.color.set('#555555'); 
-                if (node.name === 'osnova_1') node.material.color.set('#777777'); 
-                if (node.name === 'osnova_2') node.material.color.set('#333333'); 
-                if (node.name === 'arka') node.material.color.set('#1a1a1a'); 
-                if (node.name === 'arka_1') node.material.color.set('#444444'); 
-                if (node.name === 'arka_2') node.material.color.set('#8b8b8b'); 
-            }
-        });
-        update();
-    });
 
     function changeOsnova(n) {
         currentOsnova = n;
