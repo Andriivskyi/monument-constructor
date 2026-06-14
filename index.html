@@ -45,9 +45,9 @@
 
         <div class="section-title">2. Виберіть Арку (Стелу):</div>
         <div class="btn-group">
-            <button id="btn-arka" onclick="changeArka('arka')">Арка: Хвилька</button>
-            <button id="btn-arka_1" onclick="changeArka('arka_1')">Арка: Пряма</button>
-            <button id="btn-arka_2" onclick="changeArka('arka_2')">Арка: Купол</button>
+            <button id="btn-arka" onclick="changeArka('arka')">Арка: Пряма</button>
+            <button id="btn-arka_1" onclick="changeArka('arka_1')">Арка: Хвилька</button>
+            <button id="btn-arka_2" onclick="changeArka('arka_2')">Арка: купол</button>
         </div>
 
     </div>
@@ -60,11 +60,17 @@
 
     const viewer = document.getElementById('main-model');
 
+    // ФУНКЦІЯ ЖОРСТКОГО ПРИМУСОВОГО РЕНДЕРУ КАДРУ
+    function forceRenderScene() {
+        if (viewer && viewer.threeRenderer && viewer.currentScene && viewer.threeCamera) {
+            viewer.threeRenderer.render(viewer.currentScene, viewer.threeCamera);
+        }
+    }
+
     // ГОЛОВНА ФУНКЦІЯ ОНОВЛЕННЯ СЦЕНИ
     function updateConstructor() {
         if (!viewer) return;
         
-        // Дістаємо внутрішню 3D сцену Three.js
         const symbol = Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene');
         const scene = viewer[symbol];
         if (!scene) return;
@@ -74,7 +80,6 @@
         let activeSocketOsnova = null;
         let activeArka = null;
 
-        // Функція для отримання суфікса (osnova_1 -> 1, osnova -> "")
         const getSuffix = (name, prefix) => {
             return name.replace(prefix, '').replace('_', '');
         };
@@ -100,7 +105,7 @@
                     }
                 }
                 
-                // 3. Логіка сокетів (чистий збіг суфіксів)
+                // 3. Логіка сокетів основ
                 if (node.name.startsWith('socket_osnova')) {
                     node.visible = false;
                     
@@ -112,7 +117,7 @@
                     }
                 }
 
-                // 4. Логіка відображення арок
+                // 4. Логіка відображення арок (arka, arka_1)
                 if (node.name.startsWith('arka')) {
                     if (node.name === currentArkaName && currentArkaName !== '') {
                         node.visible = true;
@@ -138,10 +143,16 @@
             activeArka.position.z = activeSocketOsnova.position.z;
         }
 
-        // ЖОРСТКИЙ І МИТТЄВИЙ ПЕРЕРЕНДЕР 3D-КАДРУ БЕЗ ЧЕРГ ТА ЗА ТРИМОК
-        if (viewer.threeRenderer && viewer.currentScene && viewer.threeCamera) {
-            viewer.threeRenderer.render(viewer.currentScene, viewer.threeCamera);
-        }
+        // МОМЕНТАЛЬНИЙ ФОРСОВАНИЙ РЕНДЕР
+        forceRenderScene();
+        
+        // Робимо швидку серію рендерів протягом 100мс, щоб прибрати будь-яку затримку плеєра
+        let count = 0;
+        const interval = setInterval(() => {
+            forceRenderScene();
+            count++;
+            if (count > 5) clearInterval(interval);
+        }, 16);
     }
 
     // КЛІК НА КНОПКУ ОСНОВИ
@@ -166,7 +177,7 @@
         updateConstructor();
     }
 
-    // Автозапуск при першому завантаженні моделі
+    // Автозапуск при завантаженні моделі
     if (viewer) {
         viewer.addEventListener('load', () => {
             updateConstructor();
