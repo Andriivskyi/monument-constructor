@@ -7,7 +7,8 @@
     <style>
         body { background-color: #141414; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
         .container { max-width: 900px; margin: 0 auto; text-align: center; }
-        model-viewer { width: 100%; height: 60vh; background: #222; border-radius: 10px; }
+        /* Додано плавний перехід для камери */
+        model-viewer { width: 100%; height: 60vh; background: #222; border-radius: 10px; --poster-color: transparent; }
         .panel { background: #333; padding: 20px; border-radius: 10px; margin-top: 20px; }
         button { padding: 12px 20px; cursor: pointer; margin: 5px; border: 1px solid #555; border-radius: 5px; background: #444; color: white; transition: 0.3s; }
         button.active { background: #f39c12; border-color: #d35400; color: black; font-weight: bold; }
@@ -17,7 +18,13 @@
 
 <div class="container">
     <h1>Конструктор 3D Art Co</h1>
-    <model-viewer id="main-model" src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" camera-controls shadow-intensity="1"></model-viewer>
+    <model-viewer 
+        id="main-model" 
+        src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" 
+        camera-controls 
+        shadow-intensity="1"
+        camera-orbit="-45deg 60deg auto">
+    </model-viewer>
 
     <div class="panel">
         <div>Вибір основи:</div>
@@ -40,14 +47,9 @@
     // Універсальна математична функція "Абсолютного магніту"
     function snapToTarget(object, target) {
         if (!object || !target) return;
-        
         const worldPos = target.position.clone();
         target.getWorldPosition(worldPos);
-        
-        if (object.parent) {
-            object.parent.worldToLocal(worldPos);
-        }
-        
+        if (object.parent) object.parent.worldToLocal(worldPos);
         object.position.copy(worldPos);
         object.updateMatrixWorld(true);
     }
@@ -56,26 +58,21 @@
         const scene = viewer[Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene')];
         if (!scene) return;
 
-        // 1. Ховаємо ВСЕ і знаходимо сокети
         let activeSocket = null;
         scene.traverse(node => {
             if (node.name.startsWith('osnova') && !node.name.includes('parent')) node.visible = false;
             if (node.name.startsWith('arka') && !node.name.includes('parent')) node.visible = false;
-            
             if (node.name.startsWith('socket')) node.visible = false;
         });
 
-        // 2. Визначаємо активні елементи за їхніми іменами
         const activeOsnova = scene.getObjectByName(currentOsnova);
         const activeArka = scene.getObjectByName(currentArka);
         const centerSocket = scene.getObjectByName('socket_center');
         
-        // Шукаємо правильний сокет для обраної основи
         let socketName = 'socket_' + currentOsnova;
         if (currentOsnova === 'osnova') socketName = 'socket_osnova'; 
         activeSocket = scene.getObjectByName(socketName);
 
-        // 3. МАГНІТИМО І ПОКАЗУЄМО (Тільки активні деталі)
         if (activeOsnova && centerSocket) {
             activeOsnova.visible = true;
             snapToTarget(activeOsnova, centerSocket);
@@ -86,13 +83,35 @@
             snapToTarget(activeArka, activeSocket);
         }
 
-        // 4. ПРИМУСОВИЙ РЕНДЕР (Вирішує проблему "засинання" після обертання)
-        // Змінюємо інтенсивність тіні на 1%, щоб змусити браузер відмалювати змінений кадр
         const currentShadow = viewer.shadowIntensity || 1;
         viewer.shadowIntensity = currentShadow === 1 ? 0.99 : 1;
     }
 
-    // Управління кнопками
+    // Ініціалізація кольорів при завантаженні моделі
+    viewer.addEventListener('load', () => {
+        const scene = viewer[Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene')];
+        
+        scene.traverse(node => {
+            if (node.isMesh) {
+                // Клонуємо матеріал, щоб кожна деталь мала свій незалежний колір
+                node.material = node.material.clone();
+                
+                // --- НАЛАШТУВАННЯ КОЛЬОРІВ ---
+                // Основи (відтінки сірого)
+                if (node.name === 'osnova') node.material.color.set('#555555'); 
+                if (node.name === 'osnova_1') node.material.color.set('#777777'); 
+                if (node.name === 'osnova_2') node.material.color.set('#333333'); 
+
+                // Арки (відтінки темного графіту)
+                if (node.name === 'arka') node.material.color.set('#1a1a1a'); 
+                if (node.name === 'arka_1') node.material.color.set('#444444'); 
+                if (node.name === 'arka_2') node.material.color.set('#8b8b8b'); 
+            }
+        });
+
+        update(); // Запускаємо магніти після фарбування
+    });
+
     function changeOsnova(n) {
         currentOsnova = n;
         document.querySelectorAll('button[id^="btn-osnova"]').forEach(b => b.classList.remove('active'));
@@ -106,8 +125,6 @@
         document.getElementById('btn-' + n).classList.add('active');
         update();
     }
-
-    viewer.addEventListener('load', update);
 </script>
 </body>
 </html>
