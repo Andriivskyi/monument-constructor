@@ -38,20 +38,16 @@
     const viewer = document.getElementById('main-model');
 
     // Універсальна математична функція "Абсолютного магніту"
-    // Вона гарантовано суміщає два об'єкти, ігноруючи будь-які зміщення в Blender
     function snapToTarget(object, target) {
         if (!object || !target) return;
         
-        // Отримуємо абсолютні світові координати цілі (сокета)
         const worldPos = target.position.clone();
         target.getWorldPosition(worldPos);
         
-        // Якщо об'єкт знаходиться всередині пустишки, конвертуємо координати
         if (object.parent) {
             object.parent.worldToLocal(worldPos);
         }
         
-        // Переміщуємо об'єкт і фіксуємо
         object.position.copy(worldPos);
         object.updateMatrixWorld(true);
     }
@@ -66,7 +62,6 @@
             if (node.name.startsWith('osnova') && !node.name.includes('parent')) node.visible = false;
             if (node.name.startsWith('arka') && !node.name.includes('parent')) node.visible = false;
             
-            // Ховаємо самі сокети, щоб вони не стирчали на моделі
             if (node.name.startsWith('socket')) node.visible = false;
         });
 
@@ -77,7 +72,7 @@
         
         // Шукаємо правильний сокет для обраної основи
         let socketName = 'socket_' + currentOsnova;
-        if (currentOsnova === 'osnova') socketName = 'socket_osnova'; // Виняток для першої основи
+        if (currentOsnova === 'osnova') socketName = 'socket_osnova'; 
         activeSocket = scene.getObjectByName(socketName);
 
         // 3. МАГНІТИМО І ПОКАЗУЄМО (Тільки активні деталі)
@@ -91,7 +86,10 @@
             snapToTarget(activeArka, activeSocket);
         }
 
-        viewer.requestUpdate();
+        // 4. ПРИМУСОВИЙ РЕНДЕР (Вирішує проблему "засинання" після обертання)
+        // Змінюємо інтенсивність тіні на 1%, щоб змусити браузер відмалювати змінений кадр
+        const currentShadow = viewer.shadowIntensity || 1;
+        viewer.shadowIntensity = currentShadow === 1 ? 0.99 : 1;
     }
 
     // Управління кнопками
@@ -109,7 +107,6 @@
         update();
     }
 
-    // Запускаємо логіку після завантаження моделі
     viewer.addEventListener('load', update);
 </script>
 </body>
