@@ -15,10 +15,6 @@
 </head>
 <body>
 
-    <div id="debug-panel" style="position: fixed; top: 20px; left: 20px; background: rgba(0,0,0,0.8); color: #00ff00; padding: 15px; border: 2px solid red; border-radius: 5px; z-index: 9999; font-family: monospace; font-size: 14px; pointer-events: none;">
-        Покрути модель для отримання координат...
-    </div>
-
     <div class="container">
         <h1>Конструктор 3D Art Co</h1>
         <model-viewer 
@@ -26,7 +22,8 @@
             src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" 
             camera-controls 
             shadow-intensity="1"
-            camera-orbit="135deg 70deg auto">
+            camera-orbit="160deg 77deg 8.0m"
+            camera-target="-0.30m 0.30m 0.44m">
         </model-viewer>
 
         <div class="panel">
@@ -124,18 +121,6 @@
         document.getElementById('btn-' + n).classList.add('active');
         update();
     }
-
-    // СКРИПТ ПАНЕЛІ НАЛАГОДЖЕННЯ
-    viewer.addEventListener('camera-change', () => {
-        const orbit = viewer.getCameraOrbit();
-        const target = viewer.getCameraTarget();
-        const debugPanel = document.getElementById('debug-panel');
-        
-        debugPanel.innerHTML = `
-            camera-orbit="${(orbit.theta * 180 / Math.PI).toFixed(0)}deg ${(orbit.phi * 180 / Math.PI).toFixed(0)}deg ${orbit.radius.toFixed(1)}m"<br>
-            camera-target="${target.x.toFixed(2)}m ${target.y.toFixed(2)}m ${target.z.toFixed(2)}m"
-        `;
-    });
 </script>
 </body>
 </html>
