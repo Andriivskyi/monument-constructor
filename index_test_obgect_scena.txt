@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Діагностика 3D</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+</head>
+<body>
+    <model-viewer id="main-model" src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" camera-controls></model-viewer>
+    <div id="debug" style="color: white; background: #000; padding: 10px; font-family: monospace;"></div>
+
+    <script>
+        const viewer = document.getElementById('main-model');
+        const debug = document.getElementById('debug');
+
+        viewer.addEventListener('load', () => {
+            const scene = viewer[Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene')];
+            let names = [];
+            scene.traverse(node => {
+                if (node.isMesh || node.name !== "") names.push(node.name);
+            });
+            debug.innerHTML = "Об'єкти в моделі: <br>" + names.join("<br>");
+            console.log("Всі об'єкти:", names);
+        });
+    </script>
+</body>
+</html>
