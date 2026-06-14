@@ -23,7 +23,7 @@
 <div class="container">
     <div>
         <h1>Конструктор 3D Art Co</h1>
-        <p style="color: #888; margin: 0;">Автоматичне модульне стикування через пустишки</p>
+        <p style="color: #888; margin: 0;">Повне автоматичне стикування елементів (Основи + Арки)</p>
     </div>
 
     <model-viewer id="main-model" src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" camera-controls shadow-intensity="1" environment-image="neutral"></model-viewer>
@@ -48,7 +48,6 @@
 </div>
 
 <script>
-    // Поточний вибір користувача (Основа 1 активна, арка поки не вибрана)
     let currentOsnovaName = 'osnova'; 
     let currentArkaName = '';        
 
@@ -58,4 +57,95 @@
     function updateConstructor() {
         if (!viewer) return;
         
-        // Отримуємо доступ
+        const symbol = Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene');
+        const scene = viewer[symbol];
+        if (!scene) return;
+
+        let socketCenter = null;
+        let activeSocketOsnova = null;
+        
+        let osnovaContainer = null;
+        let arkaContainer = null;
+
+        // ЕТАП 1: Скануємо та керуємо видимістю
+        scene.traverse((node) => {
+            
+            // Ловимо контейнери-пустишки
+            if (node.name === 'osnova_parent') osnovaContainer = node;
+            if (node.name === 'arka_parent') arkaContainer = node;
+
+            // Ловимо сокет центру сцени
+            if (node.name === 'socket_center') {
+                node.visible = false;
+                socketCenter = node;
+                return;
+            }
+
+            // Ловимо сокети основ
+            if (node.name.startsWith('socket_')) {
+                node.visible = false;
+                
+                if (currentOsnovaName === 'osnova' && node.name === 'socket_osnova') {
+                    activeSocketOsnova = node;
+                } else if (currentOsnovaName === 'osnova_1' && node.name === 'socket_osnova_1') {
+                    activeSocketOsnova = node;
+                } else if (currentOsnovaName === 'osnova_2' && node.name === 'socket_osnova_2') {
+                    activeSocketOsnova = node;
+                }
+                return;
+            }
+
+            // Керування основами всередині osnova_parent
+            if (node.name === 'osnova_00') node.visible = (currentOsnovaName === 'osnova');
+            if (node.name === 'osnova_01') node.visible = (currentOsnovaName === 'osnova_1');
+            if (node.name === 'osnova_02') node.visible = (currentOsnovaName === 'osnova_2'); // Тут виправлено!
+
+            // Керування арками всередині arka_parent
+            if (node.name === 'arka' || node.name === 'arka_1' || node.name === 'arka_2') {
+                node.visible = (node.name === currentArkaName && currentArkaName !== '');
+            }
+        });
+
+        // ЕТАП 2: ФІЗИЧНИЙ МАГНІТ ОБЛИХ ПУСТИШЕК
+        
+        // 1. Прив'язка основ до центру
+        if (socketCenter && osnovaContainer) {
+            osnovaContainer.position.copy(socketCenter.position);
+            osnovaContainer.updateMatrix();
+            osnovaContainer.updateMatrixWorld(true);
+        }
+
+        // 2. Прив'язка арок до обраної основи
+        if (activeSocketOsnova && arkaContainer) {
+            arkaContainer.position.copy(activeSocketOsnova.position);
+            arkaContainer.updateMatrix();
+            arkaContainer.updateMatrixWorld(true);
+        }
+
+        viewer.requestUpdate();
+    }
+
+    function changeOsnova(name) {
+        currentOsnovaName = name;
+        document.querySelectorAll('[id^="btn-osnova"]').forEach(b => b.classList.remove('active'));
+        const activeBtn = document.getElementById('btn-' + name);
+        if (activeBtn) activeBtn.classList.add('active');
+        updateConstructor();
+    }
+
+    function changeArka(name) {
+        currentArkaName = name;
+        document.querySelectorAll('[id^="btn-arka"]').forEach(b => b.classList.remove('active'));
+        const activeBtn = document.getElementById('btn-' + name);
+        if (activeBtn) activeBtn.classList.add('active');
+        updateConstructor();
+    }
+
+    if (viewer) {
+        viewer.addEventListener('load', updateConstructor);
+        viewer.addEventListener('render', updateConstructor);
+    }
+</script>
+
+</body>
+</html>
