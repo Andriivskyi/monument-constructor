@@ -60,13 +60,6 @@
 
     const viewer = document.getElementById('main-model');
 
-    // ФУНКЦІЯ ЖОРСТКОГО ПРИМУСОВОГО РЕНДЕРУ КАДРУ
-    function forceRenderScene() {
-        if (viewer && viewer.threeRenderer && viewer.currentScene && viewer.threeCamera) {
-            viewer.threeRenderer.render(viewer.currentScene, viewer.threeCamera);
-        }
-    }
-
     // ГОЛОВНА ФУНКЦІЯ ОНОВЛЕННЯ СЦЕНИ
     function updateConstructor() {
         if (!viewer) return;
@@ -84,16 +77,17 @@
             return name.replace(prefix, '').replace('_', '');
         };
 
+        // 1. Проходимо по сцені та виставляємо видимість/фільтри
         scene.traverse((node) => {
             if (node.isMesh) {
                 
-                // 1. Шукаємо центр сцени
+                // Центр сцени
                 if (node.name === 'socket_center') {
                     socketCenter = node;
                     node.visible = false; 
                 }
 
-                // 2. Логіка відображення основ
+                // Видимість основ
                 if (node.name.startsWith('osnova')) {
                     if (!node.name.startsWith('socket_osnova')) {
                         if (node.name === currentOsnovaName) {
@@ -105,7 +99,7 @@
                     }
                 }
                 
-                // 3. Логіка сокетів основ
+                // Сокети основ
                 if (node.name.startsWith('socket_osnova')) {
                     node.visible = false;
                     
@@ -117,7 +111,7 @@
                     }
                 }
 
-                // 4. Логіка відображення арок (arka, arka_1)
+                // Видимість арок
                 if (node.name.startsWith('arka')) {
                     if (node.name === currentArkaName && currentArkaName !== '') {
                         node.visible = true;
@@ -129,30 +123,22 @@
             }
         });
 
-        // ЕТАП А: Прив'язка основи до центру
+        // 2. Магнітимо позиції об'єктів
         if (socketCenter && activeOsnova) {
-            activeOsnova.position.x = socketCenter.position.x;
-            activeOsnova.position.y = socketCenter.position.y;
-            activeOsnova.position.z = socketCenter.position.z;
+            activeOsnova.position.copy(socketCenter.position);
         }
 
-        // ЕТАП Б: Прив'язка арки до сокета поточної основи
         if (activeSocketOsnova && activeArka) {
-            activeArka.position.x = activeSocketOsnova.position.x;
-            activeArka.position.y = activeSocketOsnova.position.y;
-            activeArka.position.z = activeSocketOsnova.position.z;
+            activeArka.position.copy(activeSocketOsnova.position);
         }
 
-        // МОМЕНТАЛЬНИЙ ФОРСОВАНИЙ РЕНДЕР
-        forceRenderScene();
-        
-        // Робимо швидку серію рендерів протягом 100мс, щоб прибрати будь-яку затримку плеєра
-        let count = 0;
-        const interval = setInterval(() => {
-            forceRenderScene();
-            count++;
-            if (count > 5) clearInterval(interval);
-        }, 16);
+        // 3. РІШЕННЯ ПРОБЛЕМИ: Синхронізуємося з рідним циклом анімації model-viewer
+        // Це змушує плеєр зафіксувати зміни в наступному ж кадрі, ігноруючи рух мишки
+        requestAnimationFrame(() => {
+            if (typeof viewer.queueRender === 'function') {
+                viewer.queueRender();
+            }
+        });
     }
 
     // КЛІК НА КНОПКУ ОСНОВИ
@@ -177,7 +163,7 @@
         updateConstructor();
     }
 
-    // Автозапуск при завантаженні моделі
+    // Автозапуск при завантаженні моделі та постійний контроль сцени
     if (viewer) {
         viewer.addEventListener('load', () => {
             updateConstructor();
