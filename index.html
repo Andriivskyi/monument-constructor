@@ -54,7 +54,7 @@
 </div>
 
 <script>
-    // Поточний стан (що вибрано)
+    // Поточний стан (за замовчуванням вибрано першу основу, арка спочатку порожня)
     let currentOsnovaName = 'osnova';
     let currentArkaName = '';
 
@@ -64,7 +64,6 @@
     function updateConstructor() {
         if (!viewer) return;
         
-        // Дістаємо 3D сцену Three.js всередині віджета
         const symbol = Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene');
         const scene = viewer[symbol];
         if (!scene) return;
@@ -100,7 +99,7 @@
                     }
                 }
                 
-                // 3. Логіка сокетів (чистий збіг суфіксів після перейменування)
+                // 3. Логіка сокетів (чистий збіг суфіксів)
                 if (node.name.startsWith('socket_osnova')) {
                     node.visible = false;
                     
@@ -112,7 +111,7 @@
                     }
                 }
 
-                // 4. Логіка відображення арок (тепер шукає чисті arka, arka_1, arka_2)
+                // 4. Логіка відображення арок (шукає чисті arka, arka_1, arka_2)
                 if (node.name.startsWith('arka')) {
                     if (node.name === currentArkaName && currentArkaName !== '') {
                         node.visible = true;
@@ -131,14 +130,14 @@
             activeOsnova.position.z = socketCenter.position.z;
         }
 
-        // ЕТАП Б: Прив'язка арки до сокета поточної основи
+        // ЕТАП Б: Прив'язка арки до сокета поточної основи (працює автоматично при зміні основи!)
         if (activeSocketOsnova && activeArka) {
             activeArka.position.x = activeSocketOsnova.position.x;
             activeArka.position.y = activeSocketOsnova.position.y;
             activeArka.position.z = activeSocketOsnova.position.z;
         }
 
-        // ПРИМУСОВИЙ РЕНДЕР КАДРУ (прибирає потребу клікати по 3D сцені)
+        // МИТТЄВИЙ РЕНДЕР КАДРУ
         if (typeof viewer.queueRender === 'function') {
             viewer.queueRender();
         }
@@ -147,13 +146,11 @@
     // КЛІК НА КНОПКУ ОСНОВИ
     function changeOsnova(name) {
         currentOsnovaName = name;
-        currentArkaName = ''; // Примусово ховаємо арку при зміні основи
+        // Рядок currentArkaName = ''; ВИДАЛЕНО, щоб арка НЕ зникала!
         
         document.querySelectorAll('[id^="btn-osnova"]').forEach(b => b.classList.remove('active'));
         const activeBtn = document.getElementById('btn-' + name);
         if (activeBtn) activeBtn.classList.add('active');
-        
-        document.querySelectorAll('[id^="btn-arka"]').forEach(b => b.classList.remove('active'));
 
         updateConstructor();
     }
@@ -169,13 +166,13 @@
         updateConstructor();
     }
 
-    // Автозапуск при завантаженні моделі
+    // Чистий автозапуск без зайвих тормозів
     if (viewer) {
         viewer.addEventListener('load', () => {
             updateConstructor();
-            setTimeout(updateConstructor, 100);
         });
     }
+</script>
 </script>
 
 </body>
