@@ -54,86 +54,43 @@
 </div>
 
 <script>
-    // Поточний стан конструктора
+    // Початковий стан конструктора
     let currentOsnovaName = 'osnova';
     let currentArkaName = '';
 
     const viewer = document.getElementById('main-model');
 
-    // ГОЛОВНА ФУНКЦІЯ ОНОВЛЕННЯ
+    // ГОЛОВНА ФУНКЦІЯ ОНОВЛЕННЯ СЦЕНИ
     function updateConstructor() {
         if (!viewer) return;
         
+        // Отримуємо прямий доступ до 3D-сцени в обхід усіх захистів плеєра
         const symbol = Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene');
         const scene = viewer[symbol];
         if (!scene) return;
 
-        let socketCenter = null;
-        let activeOsnova = null;
-        let activeSocketOsnova = null;
-        let activeArka = null;
-
-        const getSuffix = (name, prefix) => {
-            return name.replace(prefix, '').replace('_', '');
-        };
-
-        // 1. Повний обхід мешів
         scene.traverse((node) => {
             if (node.isMesh) {
                 
-                // Центр
-                if (node.name === 'socket_center') {
-                    socketCenter = node;
+                // Ховаємо службові сокети назавжди
+                if (node.name.startsWith('socket_')) {
                     node.visible = false;
+                    return;
                 }
 
-                // Основна плита
+                // Перемикаємо основи
                 if (node.name.startsWith('osnova')) {
-                    if (!node.name.startsWith('socket_osnova')) {
-                        if (node.name === currentOsnovaName) {
-                            node.visible = true;
-                            activeOsnova = node;
-                        } else {
-                            node.visible = false;
-                        }
-                    }
-                }
-                
-                // Сокет плити
-                if (node.name.startsWith('socket_osnova')) {
-                    node.visible = false;
-                    const osnovaIndex = getSuffix(currentOsnovaName, 'osnova');
-                    const socketIndex = getSuffix(node.name, 'socket_osnova');
-                    
-                    if (osnovaIndex === socketIndex) {
-                        activeSocketOsnova = node;
-                    }
+                    node.visible = (node.name === currentOsnovaName);
                 }
 
-                // Арка
+                // Перемикаємо арки
                 if (node.name.startsWith('arka')) {
-                    if (node.name === currentArkaName && currentArkaName !== '') {
-                        node.visible = true;
-                        activeArka = node;
-                    } else {
-                        node.visible = false;
-                    }
+                    node.visible = (node.name === currentArkaName && currentArkaName !== '');
                 }
             }
         });
 
-        // 2. Жорстке виставлення координат
-        if (socketCenter && activeOsnova) {
-            activeOsnova.position.copy(socketCenter.position);
-            activeOsnova.updateMatrix(); // Змушуємо об'єкт оновити матрицю в пам'яті
-        }
-
-        if (activeSocketOsnova && activeArka) {
-            activeArka.position.copy(activeSocketOsnova.position);
-            activeArka.updateMatrix();
-        }
-
-        // 3. ЗМУШУЄМО MODEL-VIEWER ПРИЙНЯТИ ЗМІНИ ПІСЛЯ РУХУ МИШКИ
+        // Офіційний метод model-viewer для примусової фіксації сцени в її поточному стані
         viewer.requestUpdate();
     }
 
@@ -159,19 +116,13 @@
         updateConstructor();
     }
 
-    // ХИТРІСТЬ: Кожного разу, коли користувач крутить модель, ми ловимо момент відпускання мишки 
-    // або взаємодії і примусово синхронізуємо наші деталі
+    // Запускаємо логіку щоразу, коли користувач взаємодіє з моделлю
     if (viewer) {
-        viewer.addEventListener('load', () => {
-            updateConstructor();
-        });
-
-        // Кастиль для фіксації після обертання мишкою
-        viewer.addEventListener('camera-change', () => {
-            updateConstructor();
-        });
+        viewer.addEventListener('load', updateConstructor);
+        
+        // Ця подія спрацьовує під час КОЖНОГО кадру обертання моделі мишкою
+        viewer.addEventListener('render', updateConstructor);
     }
 </script>
-
 </body>
 </html>
