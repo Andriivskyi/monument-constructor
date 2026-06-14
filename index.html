@@ -15,6 +15,10 @@
 </head>
 <body>
 
+    <div id="debug-panel" style="position: fixed; top: 20px; left: 20px; background: rgba(0,0,0,0.8); color: #00ff00; padding: 15px; border: 2px solid red; border-radius: 5px; z-index: 1000; font-family: monospace; font-size: 16px;">
+    Покрути модель, щоб побачити координати...
+</div>
+
 <div class="container">
     <h1>Конструктор 3D Art Co</h1>
 
@@ -40,6 +44,28 @@
     </div>
 </div>
 
+// ТИМЧАСОВИЙ КОД ДЛЯ КАМЕРИ (ПОТІМ ВИДАЛИТИ)
+    const debugPanel = document.getElementById('debug-panel');
+    viewer.addEventListener('camera-change', () => {
+        const orbit = viewer.getCameraOrbit();
+        const target = viewer.getCameraTarget();
+        
+        // Переводимо радіани в градуси для зручності
+        const theta = (orbit.theta * 180 / Math.PI).toFixed(0); 
+        const phi = (orbit.phi * 180 / Math.PI).toFixed(0);
+        const radius = orbit.radius.toFixed(2);
+        
+        const tx = target.x.toFixed(2);
+        const ty = target.y.toFixed(2);
+        const tz = target.z.toFixed(2);
+
+        debugPanel.innerHTML = `
+            <b>Готові налаштування:</b><br><br>
+            camera-orbit="${theta}deg ${phi}deg ${radius}m"<br>
+            camera-target="${tx}m ${ty}m ${tz}m"
+        `;
+    });
+    
 <script>
     let currentOsnova = 'osnova';
     let currentArka = 'arka';
