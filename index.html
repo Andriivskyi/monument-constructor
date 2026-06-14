@@ -60,7 +60,7 @@
 
     const viewer = document.getElementById('main-model');
 
-    // ГОЛОВНА ФУНКЦІЯ ОНОВЛЕННЯ СЦЕНИ
+    // ГОЛОВНА ФУНКЦІЯ ОНОВЛЕННЯ
     function updateConstructor() {
         if (!viewer) return;
         
@@ -77,17 +77,17 @@
             return name.replace(prefix, '').replace('_', '');
         };
 
-        // 1. Проходимо по сцені та виставляємо видимість/фільтри
+        // 1. Повний обхід мешів
         scene.traverse((node) => {
             if (node.isMesh) {
                 
-                // Центр сцени
+                // Центр
                 if (node.name === 'socket_center') {
                     socketCenter = node;
-                    node.visible = false; 
+                    node.visible = false;
                 }
 
-                // Видимість основ
+                // Основна плита
                 if (node.name.startsWith('osnova')) {
                     if (!node.name.startsWith('socket_osnova')) {
                         if (node.name === currentOsnovaName) {
@@ -99,10 +99,9 @@
                     }
                 }
                 
-                // Сокети основ
+                // Сокет плити
                 if (node.name.startsWith('socket_osnova')) {
                     node.visible = false;
-                    
                     const osnovaIndex = getSuffix(currentOsnovaName, 'osnova');
                     const socketIndex = getSuffix(node.name, 'socket_osnova');
                     
@@ -111,7 +110,7 @@
                     }
                 }
 
-                // Видимість арок
+                // Арка
                 if (node.name.startsWith('arka')) {
                     if (node.name === currentArkaName && currentArkaName !== '') {
                         node.visible = true;
@@ -123,22 +122,19 @@
             }
         });
 
-        // 2. Магнітимо позиції об'єктів
+        // 2. Жорстке виставлення координат
         if (socketCenter && activeOsnova) {
             activeOsnova.position.copy(socketCenter.position);
+            activeOsnova.updateMatrix(); // Змушуємо об'єкт оновити матрицю в пам'яті
         }
 
         if (activeSocketOsnova && activeArka) {
             activeArka.position.copy(activeSocketOsnova.position);
+            activeArka.updateMatrix();
         }
 
-        // 3. РІШЕННЯ ПРОБЛЕМИ: Синхронізуємося з рідним циклом анімації model-viewer
-        // Це змушує плеєр зафіксувати зміни в наступному ж кадрі, ігноруючи рух мишки
-        requestAnimationFrame(() => {
-            if (typeof viewer.queueRender === 'function') {
-                viewer.queueRender();
-            }
-        });
+        // 3. ЗМУШУЄМО MODEL-VIEWER ПРИЙНЯТИ ЗМІНИ ПІСЛЯ РУХУ МИШКИ
+        viewer.requestUpdate();
     }
 
     // КЛІК НА КНОПКУ ОСНОВИ
@@ -163,9 +159,15 @@
         updateConstructor();
     }
 
-    // Автозапуск при завантаженні моделі та постійний контроль сцени
+    // ХИТРІСТЬ: Кожного разу, коли користувач крутить модель, ми ловимо момент відпускання мишки 
+    // або взаємодії і примусово синхронізуємо наші деталі
     if (viewer) {
         viewer.addEventListener('load', () => {
+            updateConstructor();
+        });
+
+        // Кастиль для фіксації після обертання мишкою
+        viewer.addEventListener('camera-change', () => {
             updateConstructor();
         });
     }
