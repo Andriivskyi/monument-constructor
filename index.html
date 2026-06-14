@@ -84,14 +84,17 @@
     }
 
     // КЛІК НА ОСНОВУ
+   // БЕЗПЕЧНИЙ КЛІК НА ОСНОВУ
     function changeOsnova(name) {
         currentOsnovaName = name;
-        currentArkaName = ''; // При зміні основи ховаємо арку (все інше зникає)
+        currentArkaName = ''; // Ховаємо арку
         
-        // Оновлюємо підсвітку кнопок основ
+        // Безпечно перемикаємо підсвітку кнопок основ
         document.querySelectorAll('[id^="btn-osnova"]').forEach(b => b.classList.remove('active'));
         const activeBtn = document.getElementById('btn-' + name);
-        if (activeBtn) activeBtn.classList.add('active');
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
         
         // Гасимо підсвітку кнопок арок
         document.querySelectorAll('[id^="btn-arka"]').forEach(b => b.classList.remove('active'));
@@ -99,18 +102,19 @@
         updateConstructor();
     }
 
-    // КЛІК НА АРКУ
+    // БЕЗПЕЧНИЙ КЛІК НА АРКУ
     function changeArka(name) {
         currentArkaName = name;
         
-        // Оновлюємо підсвітку кнопок арок
+        // Безпечно перемикаємо підсвітку кнопок арок
         document.querySelectorAll('[id^="btn-arka"]').forEach(b => b.classList.remove('active'));
         const activeBtn = document.getElementById('btn-' + name);
-        if (activeBtn) activeBtn.classList.add('active');
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
 
         updateConstructor();
     }
-
     // Запуск системи при завантаженні 3D-файлу
     viewer.addEventListener('load', () => {
         updateConstructor();
