@@ -2,100 +2,26 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>3D Конструктор Пам'ятників</title>
+    <title>Діагностика 3D</title>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
-    
-    <style>
-        body { background-color: #141414; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; text-align: center; }
-        model-viewer { width: 100%; height: 50vh; background: #222; border-radius: 10px; }
-        .panel { background: #333; padding: 20px; border-radius: 10px; margin-top: 20px; }
-        button { padding: 10px 20px; cursor: pointer; margin: 5px; border: none; border-radius: 5px; }
-        button.active { background: #f39c12; color: white; }
-    </style>
 </head>
 <body>
-
-<div class="container">
-    <h1>Конструктор 3D Art Co</h1>
     <model-viewer id="main-model" src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" camera-controls></model-viewer>
+    <div id="debug" style="color: white; background: #000; padding: 10px; font-family: monospace;"></div>
 
-    <div class="panel">
-        <div>Основа:</div>
-        <button id="btn-osnova" onclick="changeOsnova('osnova')">Основа 1</button>
-        <button id="btn-osnova_1" onclick="changeOsnova('osnova_1')">Основа 2</button>
-        <button id="btn-osnova_2" onclick="changeOsnova('osnova_2')">Основа 3</button>
+    <script>
+        const viewer = document.getElementById('main-model');
+        const debug = document.getElementById('debug');
 
-        <div style="margin-top:15px;">Арка:</div>
-        <button id="btn-arka" onclick="changeArka('arka')">Пряма</button>
-        <button id="btn-arka_1" onclick="changeArka('arka_1')">Хвилька</button>
-        <button id="btn-arka_2" onclick="changeArka('arka_2')">Купол</button>
-    </div>
-</div>
-
-<script>
-    let currentOsnova = 'osnova';
-    let currentArka = '';
-    const viewer = document.getElementById('main-model');
-
-    function update() {
-        const scene = viewer[Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene')];
-        if (!scene) return;
-
-        let activeSocket = null;
-        let osnovaParent = null;
-        let arkaParent = null;
-
-        scene.traverse(node => {
-            if (node.name === 'osnova_parent') osnovaParent = node;
-            if (node.name === 'arka_parent') arkaParent = node;
-            
-            // Сокети
-            if (node.name === 'socket_center') node.visible = false;
-            if (node.name.startsWith('socket_osnova')) {
-                node.visible = false;
-                if ((currentOsnova === 'osnova' && node.name === 'socket_osnova') ||
-                    (currentOsnova === 'osnova_1' && node.name === 'socket_osnova_1') ||
-                    (currentOsnova === 'osnova_2' && node.name === 'socket_osnova_2')) {
-                    activeSocket = node;
-                }
-            }
-
-            // Основи
-            if (['osnova_00', 'osnova_01', 'osnova_02'].includes(node.name)) {
-                node.visible = (node.name === (currentOsnova === 'osnova' ? 'osnova_00' : currentOsnova === 'osnova_1' ? 'osnova_01' : 'osnova_02'));
-            }
-
-            // Арки
-            if (['arka', 'arka_1', 'arka_2'].includes(node.name)) {
-                node.visible = (node.name === currentArka);
-            }
+        viewer.addEventListener('load', () => {
+            const scene = viewer[Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene')];
+            let names = [];
+            scene.traverse(node => {
+                if (node.isMesh || node.name !== "") names.push(node.name);
+            });
+            debug.innerHTML = "Об'єкти в моделі: <br>" + names.join("<br>");
+            console.log("Всі об'єкти:", names);
         });
-
-        // Магніти
-        if (osnovaParent) {
-            const center = scene.getObjectByName('socket_center');
-            if (center) {
-                osnovaParent.position.copy(center.position);
-                osnovaParent.updateMatrixWorld();
-            }
-        }
-        if (arkaParent && activeSocket) {
-            arkaParent.position.copy(activeSocket.position);
-            arkaParent.updateMatrixWorld();
-        }
-    }
-
-    function changeOsnova(n) {
-        currentOsnova = n;
-        update();
-    }
-    function changeArka(n) {
-        currentArka = n;
-        update();
-    }
-
-    viewer.addEventListener('load', update);
-</script>
+    </script>
 </body>
 </html>
