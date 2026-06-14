@@ -48,115 +48,14 @@
 </div>
 
 <script>
-    // Початковий стан: Основа 1 активна, арка поки не вибрана (пусто)
-    let currentOsnovaName = 'osnova';
-    let currentArkaName = '';
+    // Поточний вибір користувача (Основа 1 активна, арка поки не вибрана)
+    let currentOsnovaName = 'osnova'; 
+    let currentArkaName = '';        
 
     const viewer = document.getElementById('main-model');
 
     // ГОЛОВНА ФУНКЦІЯ ОНОВЛЕННЯ СЦЕНИ
-// ГОЛОВНА ФУНКЦІЯ ОНОВЛЕННЯ СЦЕНИ
     function updateConstructor() {
         if (!viewer) return;
         
-        const symbol = Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene');
-        const scene = viewer[symbol];
-        if (!scene) return;
-
-        let activeSocketOsnova = null;
-        let arkaContainer = null;
-
-        // Функція для пошуку індексу в назві (наприклад, з 'osnova_2' або 'socket_osnova_2' дістає '2')
-        const getIndex = (name) => {
-            const match = name.match(/\d+/);
-            return match ? match[0] : '0'; // якщо цифри немає, це перша основа ('0')
-        };
-
-        const targetOsnovaIndex = getIndex(currentOsnovaName);
-
-        // ЕТАП 1: Проходимо по ВСІХ об'єктах 3D сцени
-        scene.traverse((node) => {
-            
-            // 1. Шукаємо нашу головну пустишку-коробку арок
-            if (node.name === 'arka_parent') {
-                arkaContainer = node;
-            }
-
-            // 2. Ловимо сокети (вони можуть бути і мешами, і пустишками)
-            if (node.name.includes('socket_osnova')) {
-                node.visible = false; // ховаємо від клієнта
-                
-                if (getIndex(node.name) === targetOsnovaIndex) {
-                    activeSocketOsnova = node; // Оце наш цільовий магніт
-                }
-                return;
-            }
-
-            // 3. Керуємо основами (шукаємо саме 3D меші або папки плит)
-            // Перевіряємо, чи в імені є слово 'osnova', але це НЕ сокет і НЕ папка 'osnova_0'
-            if (node.name.includes('osnova') && !node.name.includes('socket') && node.name !== 'osnova_0') {
-                const nodeIndex = getIndex(node.name);
-                node.visible = (nodeIndex === targetOsnovaIndex);
-            }
-
-            // 4. Керуємо арками (тільки тими, що лежать всередині arka_parent)
-            if (node.name.startsWith('arka') && node.name !== 'arka_parent' && node.name !== 'arka_0') {
-                node.visible = (node.name === currentArkaName && currentArkaName !== '');
-            }
-        });
-
-        // ЕТАП 2: Магнітимо ПУСТИШКУ з арками до сокета активної плити
-        if (activeSocketOsnova && arkaContainer) {
-            arkaContainer.position.copy(activeSocketOsnova.position);
-            arkaContainer.updateMatrix();
-            arkaContainer.updateMatrixWorld(true);
-        }
-
-        viewer.requestUpdate();
-    }
-
-        // ЕТАП 2: Магнітимо ВЕСЬ КОНТЕЙНЕР (пустишку) разом з арками на висоту активного сокета
-        if (activeSocketOsnova && arkaContainer) {
-            // Копіюємо координати сокета в пустишку
-            arkaContainer.position.copy(activeSocketOsnova.position);
-            
-            // Жорстко переписуємо матриці трансформації, щоб обертання миші не могло їх скинути
-            arkaContainer.updateMatrix();
-            arkaContainer.updateMatrixWorld(true);
-        }
-
-        // Примусово перемальовуємо вівер з новими налаштуваннями
-        viewer.requestUpdate();
-    }
-
-    // КЛІК НА КНОПКУ ОСНОВИ
-    function changeOsnova(name) {
-        currentOsnovaName = name;
-        
-        document.querySelectorAll('[id^="btn-osnova"]').forEach(b => b.classList.remove('active'));
-        const activeBtn = document.getElementById('btn-' + name);
-        if (activeBtn) activeBtn.classList.add('active');
-
-        updateConstructor();
-    }
-
-    // КЛІК НА КНОПКУ АРКИ
-    function changeArka(name) {
-        currentArkaName = name;
-        
-        document.querySelectorAll('[id^="btn-arka"]').forEach(b => b.classList.remove('active'));
-        const activeBtn = document.getElementById('btn-' + name);
-        if (activeBtn) activeBtn.classList.add('active');
-
-        updateConstructor();
-    }
-
-    // Запускаємо логіку синхронізації при завантаженні та на кожному кадрі руху миші
-    if (viewer) {
-        viewer.addEventListener('load', updateConstructor);
-        viewer.addEventListener('render', updateConstructor);
-    }
-</script>
-
-</body>
-</html>
+        // Отримуємо доступ
