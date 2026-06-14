@@ -2,68 +2,64 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>Конструктор пам'ятників</title>
+    <title>Тест Авто-Магніту</title>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
-    
     <style>
-        body {
-            margin: 0;
-            background-color: #1a1a1a; /* Темний професійний фон */
-            color: white;
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .controls {
-            padding: 20px;
-            display: flex;
-            gap: 15px;
-        }
-
-        button {
-            padding: 10px 20px;
-            cursor: pointer;
-            background: #444;
-            border: none;
-            color: white;
-            border-radius: 5px;
-        }
-
-        button:hover { background: #666; }
-
-        model-viewer {
-            width: 90%;
-            height: 70vh;
-            background-color: #2c3e50; /* Фон самого вікна перегляду */
-            border-radius: 10px;
-        }
+        body { background-color: #1a1a1a; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+        model-viewer { width: 90%; height: 75vh; margin: 20px auto; background-color: #2c3e50; border-radius: 10px; }
+        .status { font-size: 18px; color: #2ecc71; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <h1>Конструктор монументів</h1>
+    <h2>Автоматичне стикування елементів</h2>
+    <div id="status-text" class="status">Завантаження моделі...</div>
 
-    <div class="controls">
-        <button onclick="changeModel('arka_1.glb')">Арка 1</button>
-        <button onclick="changeModel('arka_2.glb')">Арка 2</button>
-        <button onclick="changeModel('osnova_1.glb')">Скинути до основи</button>
-    </div>
-
-    <model-viewer id="main-model" 
-                  src="osnova_1.glb" 
-                  camera-controls 
-                  auto-rotate 
-                  shadow-intensity="1">
-    </model-viewer>
+    <model-viewer id="main-model" src="test.glb" camera-controls shadow-intensity="1"></model-viewer>
 
     <script>
-        function changeModel(fileName) {
-            const viewer = document.getElementById('main-model');
-            viewer.src = fileName;
-            console.log("Завантажено модель:", fileName);
-        }
+        const viewer = document.getElementById('main-model');
+        const statusText = document.getElementById('status-text');
+
+        // Код спрацює АВТОМАТИЧНО, як тільки файл повністю завантажиться в браузер
+        viewer.addEventListener('load', () => {
+            try {
+                // Дістаємо внутрішню 3D-сцену Three.js із model-viewer
+                const symbol = Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene');
+                const scene = viewer[symbol];
+
+                if (!scene) {
+                    statusText.innerText = "Помилка: не вдалося отримати 3D-сцену.";
+                    return;
+                }
+
+                // Шукаємо об'єкти за твоїми іменами з Blender
+                const socket = scene.getObjectByName('socket_arka');
+                const arka = scene.getObjectByName('arka');
+
+                if (socket && arka) {
+                    // Магнітимо арку до кубика-сокета по всіх трьох осях
+                    arka.position.x = socket.position.x;
+                    arka.position.y = socket.position.y;
+                    arka.position.z = socket.position.z;
+
+                    // Робимо сам кубик-сокет невидимим, щоб він не муляв око на пам'ятнику
+                    socket.visible = false;
+
+                    statusText.innerText = "✓ Систему активовано: арку успішно примагнічено!";
+                    console.log("Арку виставлено на координати сокета:", socket.position);
+                } else {
+                    statusText.style.color = "#e74c3c";
+                    statusText.innerText = "Помилка: Перевірте імена об'єктів в Blender ('socket_arka' та 'arka')";
+                }
+
+            } catch (error) {
+                console.error(error);
+                statusText.style.color = "#e74c3c";
+                statusText.innerText = "Сталася помилка під час стикування.";
+            }
+        });
     </script>
+
 </body>
 </html>
