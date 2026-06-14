@@ -1,12 +1,71 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Конструктор Пам'ятників</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+    
+    <style>
+        body { background-color: #141414; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; }
+        h1 { margin-bottom: 5px; font-size: 24px; }
+        .container { display: flex; flex-direction: column; align-items: center; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        
+        /* Стилі для 3D вікна */
+        model-viewer { width: 100%; height: 60vh; background: radial-gradient(#2c3e50, #1a252f); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        /* Панель керування (кнопки) */
+        .control-panel { background: #222; padding: 20px; border-radius: 12px; width: 100%; box-sizing: border-box; }
+        .section-title { font-size: 16px; text-transform: uppercase; color: #888; margin: 15px 0 10px 0; letter-spacing: 1px; text-align: left; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        
+        /* Стилі кнопок */
+        button { background: #333; color: white; border: 2px solid #444; padding: 12px 24px; font-size: 14px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+        button:hover { background: #444; border-color: #f39c12; }
+        button.active { background: #f39c12; border-color: #d35400; color: black; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div>
+        <h1>Конструктор 3D Art Co</h1>
+        <p style="color: #888; margin: 0;">Виберіть комплектацію для автоматичного стикування</p>
+    </div>
+
+    <model-viewer id="main-model" src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" camera-controls shadow-intensity="1" environment-image="neutral"></model-viewer>
+
+    <div class="control-panel">
+        
+        <div class="section-title">1. Виберіть Основу (Плиту):</div>
+        <div class="btn-group">
+            <button id="btn-osnova" class="active" onclick="changeOsnova('osnova')">Основа 1</button>
+            <button id="btn-osnova_1" onclick="changeOsnova('osnova_1')">Основа 2</button>
+            <button id="btn-osnova_2" onclick="changeOsnova('osnova_2')">Основа 3</button>
+        </div>
+
+        <div class="section-title">2. Виберіть Арку (Стелу):</div>
+        <div class="btn-group">
+            <button id="btn-arka" onclick="changeArka('arka')">Арка: Пряма</button>
+            <button id="btn-arka.001" onclick="changeArka('arka.001')">Арка: Хвилька</button>
+            <button id="btn-arka.002" onclick="changeArka('arka.002')">Арка: Купол</button>
+        </div>
+
+    </div>
+</div>
+
 <script>
-    // Поточний стан (За замовчуванням увімкнена перша основа, а арка схована)
+    // Поточний стан конструктора (за замовчуванням вибрано першу основу)
     let currentOsnovaName = 'osnova';
     let currentArkaName = '';
 
+    // Безпечно дістаємо плеєр
     const viewer = document.getElementById('main-model');
 
-    // ГОЛОВНА ЛОГІКА ПОДВІЙНОГО МАГНІЧЕННЯ
+    // ГОЛОВНА ФУНКЦІЯ ОНОВЛЕННЯ СЦЕНИ
     function updateConstructor() {
+        if (!viewer) return;
+        
+        // Знаходимо приховане 3D-середовище всередині віджета
         const symbol = Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene');
         const scene = viewer[symbol];
         if (!scene) return;
@@ -16,21 +75,23 @@
         let activeSocketOsnova = null;
         let activeArka = null;
 
-        // Очищаємо індекси для правильного порівняння (перетворюємо osnova_1 або osnova_01 на просто цифру/суфікс)
-        const getSuffix = (name) => name.includes('_') ? name.split('_').pop() : '';
+        // Допоміжна функція для визначення суфікса об'єкта (для osnova_1 це "1", для osnova це "")
+        const getSuffix = (name) => {
+            if (!name.includes('_')) return '';
+            return name.split('_').pop();
+        };
 
         scene.traverse((node) => {
             if (node.isMesh) {
                 
-                // 1. Центральний сокет
+                // 1. Шукаємо центральний сокет
                 if (node.name === 'socket_center') {
                     socketCenter = node;
                     node.visible = false; 
                 }
 
-                // 2. Фільтр основ (перевіряємо точний збіг імені або за ієрархією Blender)
+                // 2. Логіка відображення основ
                 if (node.name.startsWith('osnova')) {
-                    // Перевіряємо чи це меш самої основи, а не сокет
                     if (!node.name.startsWith('socket_osnova')) {
                         if (node.name === currentOsnovaName) {
                             node.visible = true;
@@ -41,9 +102,9 @@
                     }
                 }
                 
-                // 3. Фільтр сокетів, які прив'язані до основ
+                // 3. Збіг сокетів арок за суфіксами
                 if (node.name.startsWith('socket_osnova')) {
-                    node.visible = false; // Кубики завжди невидимі
+                    node.visible = false;
                     
                     const osnovaSuffix = getSuffix(currentOsnovaName);
                     const socketSuffix = getSuffix(node.name);
@@ -53,7 +114,7 @@
                     }
                 }
 
-                // 4. Фільтр арок
+                // 4. Логіка відображення арок
                 if (node.name.startsWith('arka')) {
                     if (node.name === currentArkaName && currentArkaName !== '') {
                         node.visible = true;
@@ -65,60 +126,61 @@
             }
         });
 
-        // ЕТАП А: Основа летить до socket_center
+        // ЕТАП 1: Магнітимо основу до центру
         if (socketCenter && activeOsnova) {
             activeOsnova.position.x = socketCenter.position.x;
             activeOsnova.position.y = socketCenter.position.y;
             activeOsnova.position.z = socketCenter.position.z;
         }
 
-        // ЕТАП Б: ...і арка летить до сокета поточної основи
+        // ЕТАП 2: Магнітимо арку до сокета активної основи
         if (activeSocketOsnova && activeArka) {
             activeArka.position.x = activeSocketOsnova.position.x;
             activeArka.position.y = activeSocketOsnova.position.y;
             activeArka.position.z = activeSocketOsnova.position.z;
         }
 
-        // КРИТИЧНО ВАЖЛИВО: Примусово змушуємо плеєр перемалювати 3D-сцену прямо зараз!
+        // Примусове та миттєве перемалювання 3D вікна
         viewer.requestUpdate();
     }
 
-    // КЛІК НА ОСНОВУ
-   // БЕЗПЕЧНИЙ КЛІК НА ОСНОВУ
+    // КЛІК НА КНОПКУ ОСНОВИ
     function changeOsnova(name) {
         currentOsnovaName = name;
-        currentArkaName = ''; // Ховаємо арку
+        currentArkaName = ''; // Примусово ховаємо арку ("все інше зникає")
         
-        // Безпечно перемикаємо підсвітку кнопок основ
+        // Оновлюємо класи активності кнопок основ
         document.querySelectorAll('[id^="btn-osnova"]').forEach(b => b.classList.remove('active'));
         const activeBtn = document.getElementById('btn-' + name);
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-        }
+        if (activeBtn) activeBtn.classList.add('active');
         
-        // Гасимо підсвітку кнопок арок
+        // Скидаємо виділення з арок
         document.querySelectorAll('[id^="btn-arka"]').forEach(b => b.classList.remove('active'));
 
         updateConstructor();
     }
 
-    // БЕЗПЕЧНИЙ КЛІК НА АРКУ
+    // КЛІК НА КНОПКУ АРКИ
     function changeArka(name) {
         currentArkaName = name;
         
-        // Безпечно перемикаємо підсвітку кнопок арок
+        // Оновлюємо класи активності кнопок арок
         document.querySelectorAll('[id^="btn-arka"]').forEach(b => b.classList.remove('active'));
         const activeBtn = document.getElementById('btn-' + name);
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-        }
+        if (activeBtn) activeBtn.classList.add('active');
 
         updateConstructor();
     }
-    // Запуск системи при завантаженні 3D-файлу
-    viewer.addEventListener('load', () => {
-        updateConstructor();
-        // Робимо ще один запуск через мікро-паузу, щоб Three.js встиг все прорахувати
-        setTimeout(updateConstructor, 100);
-    });
+
+    // БЕЗПЕЧНИЙ ЗАПУСК СИС ТЕМИ
+    if (viewer) {
+        viewer.addEventListener('load', () => {
+            updateConstructor();
+            // Мікро-затримка для синхронізації з движком Three.js всередині плеєра
+            setTimeout(updateConstructor, 150);
+        });
+    }
 </script>
+
+</body>
+</html>
