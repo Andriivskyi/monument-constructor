@@ -7,7 +7,6 @@
     <style>
         body { background-color: #141414; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
         .container { max-width: 900px; margin: 0 auto; text-align: center; }
-        /* Додано плавний перехід для камери */
         model-viewer { width: 100%; height: 60vh; background: #222; border-radius: 10px; --poster-color: transparent; }
         .panel { background: #333; padding: 20px; border-radius: 10px; margin-top: 20px; }
         button { padding: 12px 20px; cursor: pointer; margin: 5px; border: 1px solid #555; border-radius: 5px; background: #444; color: white; transition: 0.3s; }
@@ -23,7 +22,7 @@
         src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" 
         camera-controls 
         shadow-intensity="1"
-        camera-orbit="-45deg 60deg auto">
+        camera-orbit="135deg 70deg auto">
     </model-viewer>
 
     <div class="panel">
@@ -44,7 +43,7 @@
     let currentArka = 'arka';
     const viewer = document.getElementById('main-model');
 
-    // Універсальна математична функція "Абсолютного магніту"
+    // Функція абсолютного магніту
     function snapToTarget(object, target) {
         if (!object || !target) return;
         const worldPos = target.position.clone();
@@ -59,12 +58,20 @@
         if (!scene) return;
 
         let activeSocket = null;
+        
+        // 1. ХОВАЄМО ВСЕ І ПРИБИРАЄМО ТІНІ (scale = 0)
         scene.traverse(node => {
-            if (node.name.startsWith('osnova') && !node.name.includes('parent')) node.visible = false;
-            if (node.name.startsWith('arka') && !node.name.includes('parent')) node.visible = false;
-            if (node.name.startsWith('socket')) node.visible = false;
+            if ((node.name.startsWith('osnova') || node.name.startsWith('arka')) && !node.name.includes('parent')) {
+                node.visible = false;
+                node.scale.set(0, 0, 0); // Фізично "стискаємо" об'єкт, щоб зникла тінь
+            }
+            if (node.name.startsWith('socket')) {
+                node.visible = false;
+                node.scale.set(0, 0, 0);
+            }
         });
 
+        // 2. Визначаємо активні деталі
         const activeOsnova = scene.getObjectByName(currentOsnova);
         const activeArka = scene.getObjectByName(currentArka);
         const centerSocket = scene.getObjectByName('socket_center');
@@ -73,43 +80,43 @@
         if (currentOsnova === 'osnova') socketName = 'socket_osnova'; 
         activeSocket = scene.getObjectByName(socketName);
 
+        // 3. МАГНІТИМО І ПОВЕРТАЄМО РОЗМІР АКТИВНИМ ДЕТАЛЯМ
         if (activeOsnova && centerSocket) {
             activeOsnova.visible = true;
+            activeOsnova.scale.set(1, 1, 1); // Повертаємо нормальний розмір
             snapToTarget(activeOsnova, centerSocket);
         }
 
         if (activeArka && activeSocket) {
             activeArka.visible = true;
+            activeArka.scale.set(1, 1, 1); // Повертаємо нормальний розмір
             snapToTarget(activeArka, activeSocket);
         }
 
+        // Примусове оновлення кадру
         const currentShadow = viewer.shadowIntensity || 1;
         viewer.shadowIntensity = currentShadow === 1 ? 0.99 : 1;
     }
 
-    // Ініціалізація кольорів при завантаженні моделі
+    // Ініціалізація кольорів при завантаженні
     viewer.addEventListener('load', () => {
         const scene = viewer[Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene')];
         
         scene.traverse(node => {
             if (node.isMesh) {
-                // Клонуємо матеріал, щоб кожна деталь мала свій незалежний колір
                 node.material = node.material.clone();
-                
-                // --- НАЛАШТУВАННЯ КОЛЬОРІВ ---
-                // Основи (відтінки сірого)
+                // Кольори (можеш змінити HEX-коди на свої)
                 if (node.name === 'osnova') node.material.color.set('#555555'); 
                 if (node.name === 'osnova_1') node.material.color.set('#777777'); 
                 if (node.name === 'osnova_2') node.material.color.set('#333333'); 
 
-                // Арки (відтінки темного графіту)
                 if (node.name === 'arka') node.material.color.set('#1a1a1a'); 
                 if (node.name === 'arka_1') node.material.color.set('#444444'); 
                 if (node.name === 'arka_2') node.material.color.set('#8b8b8b'); 
             }
         });
 
-        update(); // Запускаємо магніти після фарбування
+        update();
     });
 
     function changeOsnova(n) {
