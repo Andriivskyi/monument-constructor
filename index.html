@@ -61,3 +61,40 @@
                     activeSocket = node;
                 }
             }
+        });
+
+        // МАГНІТИ: Переміщуємо пустишки в координати сокетів
+        const osnovaParent = scene.getObjectByName('osnova_parent');
+        const socketCenter = scene.getObjectByName('socket_center');
+        const arkaParent = scene.getObjectByName('arka_parent');
+
+        if (osnovaParent && socketCenter) {
+            osnovaParent.position.copy(socketCenter.position);
+            osnovaParent.updateMatrixWorld(true);
+        }
+        if (arkaParent && activeSocket) {
+            arkaParent.position.copy(activeSocket.position);
+            arkaParent.updateMatrixWorld(true);
+        }
+
+        viewer.requestUpdate();
+    }
+
+    function changeOsnova(n) {
+        currentOsnova = n;
+        document.querySelectorAll('button[onclick^="changeOsnova"]').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + n).classList.add('active');
+        update();
+    }
+
+    function changeArka(n) {
+        currentArka = n;
+        document.querySelectorAll('button[onclick^="changeArka"]').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + n).classList.add('active');
+        update();
+    }
+
+    viewer.addEventListener('load', update);
+</script>
+</body>
+</html>
