@@ -1,60 +1,5 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    <meta charset="UTF-8">
-    <title>3D Конструктор Пам'ятників</title>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
-    
-    <style>
-        body { background-color: #141414; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; }
-        h1 { margin-bottom: 5px; font-size: 24px; }
-        .container { display: flex; flex-direction: column; align-items: center; gap: 20px; max-width: 1200px; margin: 0 auto; }
-        
-        /* Стилі для 3D вікна */
-        model-viewer { width: 100%; height: 60vh; background: radial-gradient(#2c3e50, #1a252f); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        /* Панель керування (кнопки) */
-        .control-panel { background: #222; padding: 20px; border-radius: 12px; width: 100%; box-sizing: border-box; }
-        .section-title { font-size: 16px; text-transform: uppercase; color: #888; margin: 15px 0 10px 0; letter-spacing: 1px; text-align: left; }
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-        
-        /* Стилі кнопок */
-        button { background: #333; color: white; border: 2px solid #444; padding: 12px 24px; font-size: 14px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
-        button:hover { background: #444; border-color: #f39c12; }
-        button.active { background: #f39c12; border-color: #d35400; color: black; font-weight: bold; }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div>
-        <h1>Конструктор 3D Art Co</h1>
-        <p style="color: #888; margin: 0;">Виберіть комплектацію для автоматичного стикування</p>
-    </div>
-
-   <model-viewer id="main-model" src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" camera-controls shadow-intensity="1" environment-image="neutral"></model-viewer>
-
-    <div class="control-panel">
-        
-        <div class="section-title">1. Виберіть Основу (Плиту):</div>
-        <div class="btn-group">
-            <button id="btn-osnova" class="active" onclick="changeOsnova('osnova')">Основа 1</button>
-            <button id="btn-osnova_1" onclick="changeOsnova('osnova_1')">Основа 2</button>
-            <button id="btn-osnova_2" onclick="changeOsnova('osnova_2')">Основа 3</button>
-        </div>
-
-        <div class="section-title">2. Виберіть Арку (Стелу):</div>
-        <div class="btn-group">
-            <button id="btn-arka" onclick="changeArka('arka')">Арка: Пряма</button>
-            <button id="btn-arka.001" onclick="changeArka('arka.001')">Арка: Хвилька</button>
-            <button id="btn-arka.002" onclick="changeArka('arka.002')">Арка: Купол</button>
-        </div>
-
-    </div>
-</div>
-
 <script>
-    // Поточний стан (Основа 1 увімкнена, арка чекає на вибір)
+    // Поточний стан (За замовчуванням увімкнена перша основа, а арка схована)
     let currentOsnovaName = 'osnova';
     let currentArkaName = '';
 
@@ -71,6 +16,9 @@
         let activeSocketOsnova = null;
         let activeArka = null;
 
+        // Очищаємо індекси для правильного порівняння (перетворюємо osnova_1 або osnova_01 на просто цифру/суфікс)
+        const getSuffix = (name) => name.includes('_') ? name.split('_').pop() : '';
+
         scene.traverse((node) => {
             if (node.isMesh) {
                 
@@ -80,22 +28,27 @@
                     node.visible = false; 
                 }
 
-                // 2. Фільтр основ
+                // 2. Фільтр основ (перевіряємо точний збіг імені або за ієрархією Blender)
                 if (node.name.startsWith('osnova')) {
-                    if (node.name === currentOsnovaName) {
-                        node.visible = true;
-                        activeOsnova = node;
-                    } else {
-                        node.visible = false;
+                    // Перевіряємо чи це меш самої основи, а не сокет
+                    if (!node.name.startsWith('socket_osnova')) {
+                        if (node.name === currentOsnovaName) {
+                            node.visible = true;
+                            activeOsnova = node;
+                        } else {
+                            node.visible = false;
+                        }
                     }
                 }
                 
                 // 3. Фільтр сокетів, які прив'язані до основ
                 if (node.name.startsWith('socket_osnova')) {
-                    node.visible = false;
-                    const osnovaIndex = currentOsnovaName.replace('osnova', '');
-                    const socketIndex = node.name.replace('socket_osnova', '');
-                    if (osnovaIndex === socketIndex) {
+                    node.visible = false; // Кубики завжди невидимі
+                    
+                    const osnovaSuffix = getSuffix(currentOsnovaName);
+                    const socketSuffix = getSuffix(node.name);
+                    
+                    if (osnovaSuffix === socketSuffix) {
                         activeSocketOsnova = node;
                     }
                 }
@@ -119,22 +72,26 @@
             activeOsnova.position.z = socketCenter.position.z;
         }
 
-        // ЕТАП Б: Арка летить до локального socket_osnova поточної основи
+        // ЕТАП Б: ...і арка летить до сокета поточної основи
         if (activeSocketOsnova && activeArka) {
             activeArka.position.x = activeSocketOsnova.position.x;
             activeArka.position.y = activeSocketOsnova.position.y;
             activeArka.position.z = activeSocketOsnova.position.z;
         }
+
+        // КРИТИЧНО ВАЖЛИВО: Примусово змушуємо плеєр перемалювати 3D-сцену прямо зараз!
+        viewer.requestUpdate();
     }
 
     // КЛІК НА ОСНОВУ
     function changeOsnova(name) {
         currentOsnovaName = name;
-        currentArkaName = ''; // Скидаємо арку (все інше зникає)
+        currentArkaName = ''; // При зміні основи ховаємо арку (все інше зникає)
         
         // Оновлюємо підсвітку кнопок основ
         document.querySelectorAll('[id^="btn-osnova"]').forEach(b => b.classList.remove('active'));
-        document.getElementById('btn-' + name).classList.add('active');
+        const activeBtn = document.getElementById('btn-' + name);
+        if (activeBtn) activeBtn.classList.add('active');
         
         // Гасимо підсвітку кнопок арок
         document.querySelectorAll('[id^="btn-arka"]').forEach(b => b.classList.remove('active'));
@@ -148,7 +105,8 @@
         
         // Оновлюємо підсвітку кнопок арок
         document.querySelectorAll('[id^="btn-arka"]').forEach(b => b.classList.remove('active'));
-        document.getElementById('btn-' + name).classList.add('active');
+        const activeBtn = document.getElementById('btn-' + name);
+        if (activeBtn) activeBtn.classList.add('active');
 
         updateConstructor();
     }
@@ -156,8 +114,7 @@
     // Запуск системи при завантаженні 3D-файлу
     viewer.addEventListener('load', () => {
         updateConstructor();
+        // Робимо ще один запуск через мікро-паузу, щоб Three.js встиг все прорахувати
+        setTimeout(updateConstructor, 100);
     });
 </script>
-
-</body>
-</html>
