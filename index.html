@@ -15,63 +15,38 @@
 </head>
 <body>
 
-    <div id="debug-panel" style="position: fixed; top: 20px; left: 20px; background: rgba(0,0,0,0.8); color: #00ff00; padding: 15px; border: 2px solid red; border-radius: 5px; z-index: 1000; font-family: monospace; font-size: 16px;">
-    Покрути модель, щоб побачити координати...
-</div>
-
-<div class="container">
-    <h1>Конструктор 3D Art Co</h1>
-
-    <model-viewer 
-    id="main-model" 
-    src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" 
-    camera-controls 
-    shadow-intensity="1"
-    camera-target="0m 0.5m 0m"
-    camera-orbit="135deg 65deg 2.5m">
-</model-viewer>
-
-    <div class="panel">
-        <div>Вибір основи:</div>
-        <button id="btn-osnova" class="active" onclick="changeOsnova('osnova')">Основа 1</button>
-        <button id="btn-osnova_1" onclick="changeOsnova('osnova_1')">Основа 2</button>
-        <button id="btn-osnova_2" onclick="changeOsnova('osnova_2')">Основа 3</button>
-
-        <div style="margin-top:20px;">Вибір арки:</div>
-        <button id="btn-arka" class="active" onclick="changeArka('arka')">Пряма</button>
-        <button id="btn-arka_1" onclick="changeArka('arka_1')">Хвилька</button>
-        <button id="btn-arka_2" onclick="changeArka('arka_2')">Купол</button>
+    <div id="debug-panel" style="position: fixed; top: 20px; left: 20px; background: rgba(0,0,0,0.8); color: #00ff00; padding: 15px; border: 2px solid red; border-radius: 5px; z-index: 9999; font-family: monospace; font-size: 14px; pointer-events: none;">
+        Покрути модель для отримання координат...
     </div>
-</div>
 
-// ТИМЧАСОВИЙ КОД ДЛЯ КАМЕРИ (ПОТІМ ВИДАЛИТИ)
-    const debugPanel = document.getElementById('debug-panel');
-    viewer.addEventListener('camera-change', () => {
-        const orbit = viewer.getCameraOrbit();
-        const target = viewer.getCameraTarget();
-        
-        // Переводимо радіани в градуси для зручності
-        const theta = (orbit.theta * 180 / Math.PI).toFixed(0); 
-        const phi = (orbit.phi * 180 / Math.PI).toFixed(0);
-        const radius = orbit.radius.toFixed(2);
-        
-        const tx = target.x.toFixed(2);
-        const ty = target.y.toFixed(2);
-        const tz = target.z.toFixed(2);
+    <div class="container">
+        <h1>Конструктор 3D Art Co</h1>
+        <model-viewer 
+            id="main-model" 
+            src="https://raw.githubusercontent.com/Andriivskyi/monument-constructor/refs/heads/main/constructor.glb" 
+            camera-controls 
+            shadow-intensity="1"
+            camera-orbit="135deg 70deg auto">
+        </model-viewer>
 
-        debugPanel.innerHTML = `
-            <b>Готові налаштування:</b><br><br>
-            camera-orbit="${theta}deg ${phi}deg ${radius}m"<br>
-            camera-target="${tx}m ${ty}m ${tz}m"
-        `;
-    });
-    
+        <div class="panel">
+            <div>Вибір основи:</div>
+            <button id="btn-osnova" class="active" onclick="changeOsnova('osnova')">Основа 1</button>
+            <button id="btn-osnova_1" onclick="changeOsnova('osnova_1')">Основа 2</button>
+            <button id="btn-osnova_2" onclick="changeOsnova('osnova_2')">Основа 3</button>
+
+            <div style="margin-top:20px;">Вибір арки:</div>
+            <button id="btn-arka" class="active" onclick="changeArka('arka')">Пряма</button>
+            <button id="btn-arka_1" onclick="changeArka('arka_1')">Хвилька</button>
+            <button id="btn-arka_2" onclick="changeArka('arka_2')">Купол</button>
+        </div>
+    </div>
+
 <script>
     let currentOsnova = 'osnova';
     let currentArka = 'arka';
     const viewer = document.getElementById('main-model');
 
-    // Функція абсолютного магніту
     function snapToTarget(object, target) {
         if (!object || !target) return;
         const worldPos = target.position.clone();
@@ -85,13 +60,10 @@
         const scene = viewer[Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene')];
         if (!scene) return;
 
-        let activeSocket = null;
-        
-        // 1. ХОВАЄМО ВСЕ І ПРИБИРАЄМО ТІНІ (scale = 0)
         scene.traverse(node => {
             if ((node.name.startsWith('osnova') || node.name.startsWith('arka')) && !node.name.includes('parent')) {
                 node.visible = false;
-                node.scale.set(0, 0, 0); // Фізично "стискаємо" об'єкт, щоб зникла тінь
+                node.scale.set(0, 0, 0); 
             }
             if (node.name.startsWith('socket')) {
                 node.visible = false;
@@ -99,51 +71,43 @@
             }
         });
 
-        // 2. Визначаємо активні деталі
         const activeOsnova = scene.getObjectByName(currentOsnova);
         const activeArka = scene.getObjectByName(currentArka);
         const centerSocket = scene.getObjectByName('socket_center');
         
         let socketName = 'socket_' + currentOsnova;
         if (currentOsnova === 'osnova') socketName = 'socket_osnova'; 
-        activeSocket = scene.getObjectByName(socketName);
+        const activeSocket = scene.getObjectByName(socketName);
 
-        // 3. МАГНІТИМО І ПОВЕРТАЄМО РОЗМІР АКТИВНИМ ДЕТАЛЯМ
         if (activeOsnova && centerSocket) {
             activeOsnova.visible = true;
-            activeOsnova.scale.set(1, 1, 1); // Повертаємо нормальний розмір
+            activeOsnova.scale.set(1, 1, 1);
             snapToTarget(activeOsnova, centerSocket);
         }
 
         if (activeArka && activeSocket) {
             activeArka.visible = true;
-            activeArka.scale.set(1, 1, 1); // Повертаємо нормальний розмір
+            activeArka.scale.set(1, 1, 1);
             snapToTarget(activeArka, activeSocket);
         }
 
-        // Примусове оновлення кадру
         const currentShadow = viewer.shadowIntensity || 1;
         viewer.shadowIntensity = currentShadow === 1 ? 0.99 : 1;
     }
 
-    // Ініціалізація кольорів при завантаженні
     viewer.addEventListener('load', () => {
         const scene = viewer[Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene')];
-        
         scene.traverse(node => {
             if (node.isMesh) {
                 node.material = node.material.clone();
-                // Кольори (можеш змінити HEX-коди на свої)
                 if (node.name === 'osnova') node.material.color.set('#555555'); 
                 if (node.name === 'osnova_1') node.material.color.set('#777777'); 
                 if (node.name === 'osnova_2') node.material.color.set('#333333'); 
-
                 if (node.name === 'arka') node.material.color.set('#1a1a1a'); 
                 if (node.name === 'arka_1') node.material.color.set('#444444'); 
                 if (node.name === 'arka_2') node.material.color.set('#8b8b8b'); 
             }
         });
-
         update();
     });
 
@@ -160,6 +124,18 @@
         document.getElementById('btn-' + n).classList.add('active');
         update();
     }
+
+    // СКРИПТ ПАНЕЛІ НАЛАГОДЖЕННЯ
+    viewer.addEventListener('camera-change', () => {
+        const orbit = viewer.getCameraOrbit();
+        const target = viewer.getCameraTarget();
+        const debugPanel = document.getElementById('debug-panel');
+        
+        debugPanel.innerHTML = `
+            camera-orbit="${(orbit.theta * 180 / Math.PI).toFixed(0)}deg ${(orbit.phi * 180 / Math.PI).toFixed(0)}deg ${orbit.radius.toFixed(1)}m"<br>
+            camera-target="${target.x.toFixed(2)}m ${target.y.toFixed(2)}m ${target.z.toFixed(2)}m"
+        `;
+    });
 </script>
 </body>
 </html>
