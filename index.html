@@ -54,7 +54,7 @@
 </div>
 
 <script>
-    // Поточний стан (за замовчуванням вибрано першу основу, арка спочатку порожня)
+    // Поточний стан конструктора
     let currentOsnovaName = 'osnova';
     let currentArkaName = '';
 
@@ -64,6 +64,7 @@
     function updateConstructor() {
         if (!viewer) return;
         
+        // Дістаємо внутрішню 3D сцену Three.js
         const symbol = Object.getOwnPropertySymbols(viewer).find(e => e.description === 'scene');
         const scene = viewer[symbol];
         if (!scene) return;
@@ -111,7 +112,7 @@
                     }
                 }
 
-                // 4. Логіка відображення арок (шукає чисті arka, arka_1, arka_2)
+                // 4. Логіка відображення арок
                 if (node.name.startsWith('arka')) {
                     if (node.name === currentArkaName && currentArkaName !== '') {
                         node.visible = true;
@@ -130,23 +131,22 @@
             activeOsnova.position.z = socketCenter.position.z;
         }
 
-        // ЕТАП Б: Прив'язка арки до сокета поточної основи (працює автоматично при зміні основи!)
+        // ЕТАП Б: Прив'язка арки до сокета поточної основи
         if (activeSocketOsnova && activeArka) {
             activeArka.position.x = activeSocketOsnova.position.x;
             activeArka.position.y = activeSocketOsnova.position.y;
             activeArka.position.z = activeSocketOsnova.position.z;
         }
 
-        // МИТТЄВИЙ РЕНДЕР КАДРУ
-        if (typeof viewer.queueRender === 'function') {
-            viewer.queueRender();
+        // ЖОРСТКИЙ І МИТТЄВИЙ ПЕРЕРЕНДЕР 3D-КАДРУ БЕЗ ЧЕРГ ТА ЗА ТРИМОК
+        if (viewer.threeRenderer && viewer.currentScene && viewer.threeCamera) {
+            viewer.threeRenderer.render(viewer.currentScene, viewer.threeCamera);
         }
     }
 
     // КЛІК НА КНОПКУ ОСНОВИ
     function changeOsnova(name) {
         currentOsnovaName = name;
-        // Рядок currentArkaName = ''; ВИДАЛЕНО, щоб арка НЕ зникала!
         
         document.querySelectorAll('[id^="btn-osnova"]').forEach(b => b.classList.remove('active'));
         const activeBtn = document.getElementById('btn-' + name);
@@ -166,13 +166,12 @@
         updateConstructor();
     }
 
-    // Чистий автозапуск без зайвих тормозів
+    // Автозапуск при першому завантаженні моделі
     if (viewer) {
         viewer.addEventListener('load', () => {
             updateConstructor();
         });
     }
-</script>
 </script>
 
 </body>
